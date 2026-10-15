@@ -51,7 +51,7 @@ button,summary,.monthbox{-webkit-tap-highlight-color:transparent}
 
 @media print{body{background:white}header{padding:16px;background:white!important;color:#111;border-bottom:2px solid #333}header p{color:#333}main{margin:0}.no-print,footer{display:none!important}.card{box-shadow:none;break-inside:avoid;border:1px solid #bbb}.hero{grid-template-columns:1fr 1fr}table{min-width:0}th,td{padding:7px;font-size:10pt}.wrap{max-width:none}.calendar{grid-template-columns:repeat(4,1fr)}details.accordion{display:block!important}details.accordion:not([open])>.accordion-content{display:block!important}details.accordion>summary{display:none!important}.accordion-content{padding:8px}.tablewrap{overflow:visible}}
 /* Panel sinkronisasi disembunyikan; struktur HTML dan fungsi lainnya tetap dipertahankan. */
-
+main.wrap > .card.no-print:first-child{display:none!important}
 </style>
 </head>
 <body>
@@ -130,45 +130,15 @@ function readConnection(){
   const urlField = $('apiUrl');
   if (urlField) urlField.value = apiUrl;
 }
-function jsonp(params,timeout=12000){
-  // Google ContentService dapat mengembalikan URL pengalihan sementara yang kadang gagal.
-  // Ulangi pembacaan beberapa kali dengan callback dan parameter anti-cache baru.
-  const maxAttempts=3;
-  async function attempt(n){
-    return new Promise((resolve,reject)=>{
-      if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}
-      const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+n;
-      const script=document.createElement('script');let done=false;
-      const timer=setTimeout(()=>finish(new Error('Waktu tunggu habis pada percobaan '+n+'.')),timeout);
-      function finish(err,data){
-        if(done)return;done=true;clearTimeout(timer);
-        try{delete window[callback]}catch(e){window[callback]=undefined}
-        script.remove();
-        err?reject(err):resolve(data);
-      }
-      window[callback]=data=>finish(null,data);
-      try{
-        const url=new URL(apiUrl);
-        Object.entries({...params,callback,_ts:Date.now()+'_'+n}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
-        script.onerror=()=>finish(new Error('Pengalihan Google gagal pada percobaan '+n+'.'));
-        script.src=url.toString();
-        document.head.appendChild(script);
-      }catch(e){finish(new Error('URL Apps Script tidak valid.'))}
-    });
-  }
-  return (async()=>{
-    let lastError;
-    for(let n=1;n<=maxAttempts;n++){
-      try{
-        const data=await attempt(n);
-        if(data && typeof data==='object')return data;
-        lastError=new Error('Respons server tidak valid.');
-      }catch(e){lastError=e}
-      if(n<maxAttempts) await new Promise(resolve=>setTimeout(resolve,500*n));
-    }
-    throw new Error('Gagal membaca data setelah '+maxAttempts+' percobaan. '+(lastError?lastError.message:'Periksa deployment Apps Script dan koneksi internet.'));
-  })();
-}
+function jsonp(params,timeout=15000){return new Promise((resolve,reject)=>{
+if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}
+const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000),script=document.createElement('script');let done=false;
+const timer=setTimeout(()=>finish(new Error('Koneksi terlalu lama. Periksa internet dan URL Apps Script.')),timeout);
+function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[callback]}catch(e){window[callback]=undefined}script.remove();err?reject(err):resolve(data)}
+window[callback]=data=>finish(null,data);
+try{const url=new URL(apiUrl);Object.entries({...params,callback,_ts:Date.now()}).forEach(([k,v])=>url.searchParams.set(k,String(v)));script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Periksa URL Web App dan koneksi internet.'));script.src=url.toString();document.head.appendChild(script)}
+catch(e){finish(new Error('URL Apps Script tidak valid.'))}
+})}
 async function apiWrite(action,payload){
   if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Periksa CONFIGURED_API_URL pada kode HTML.');
   const pin=(window.prompt('Masukkan PIN pengelola untuk menyimpan perubahan:')||'').trim();
@@ -227,7 +197,7 @@ function visibleRows(){const q=$('searchInput').value.trim().toLocaleLowerCase('
 function renderTable(){const rows=visibleRows();$('scheduleBody').innerHTML='';rows.forEach((r,i)=>{const tr=document.createElement('tr');tr.className=r.cls;[String(i+1),label(r.year,r.month)].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});const nt=document.createElement('td');nt.textContent=r.replacement?`${r.name} (pengganti ${r.scheduledName}; berhalangan: ${r.replacement.absent})`:r.name;tr.appendChild(nt);const td=document.createElement('td'),sp=document.createElement('span');sp.className='status '+(r.status==='Bulan ini'?'now':r.status==='Berikutnya'?'next':'past');sp.textContent=r.status;td.appendChild(sp);tr.appendChild(td);$('scheduleBody').appendChild(tr)});$('emptyMsg').hidden=rows.length>0;$('listCaption').textContent=listMode==='history'?`Riwayat 13 bulan sebelum ${label(selected.year,selected.month)} — ${rows.length} jadwal cocok.`:`Rentang ${$('rangePicker').value} bulan mulai ${label(selected.year,selected.month)} — ${rows.length} jadwal cocok.`}
 function renderCalendar(){$('calendarYear').textContent=calendarYear;$('calendar').innerHTML='';const now=nowMonth();for(let m=0;m<12;m++){const p=personAt(calendarYear,m),b=document.createElement('button');b.type='button';b.className='monthbox';if(sameMonth({year:calendarYear,month:m},now))b.classList.add('current');if(monthDiff(calendarYear,m,now.year,now.month)===1)b.classList.add('next');const a=document.createElement('small');a.textContent=months[m];const s=document.createElement('strong');s.textContent=p.name;const o=document.createElement('small');o.textContent=p.replacement?`Pengganti ${p.scheduledName}`:`Urutan ${p.index+1} dari 13`;b.append(a,s,o);b.addEventListener('click',()=>setSelected(calendarYear,m));$('calendar').appendChild(b)}}
 function renderAll(){renderHero();renderTable();renderCalendar();$('startMonth').value=settings.startMonth;$('startYear').value=settings.startYear;$('firstPerson').value=settings.firstPerson}
-async function loadSharedData(){if(!apiUrl){setConnection('','Mode lokal — masukkan URL Apps Script untuk sinkronisasi bersama.');return}setConnection('','Menghubungkan ke Google Sheets…');try{const r=await jsonp({action:'load',t:Date.now()});if(!r||!r.ok)throw new Error(r&&r.error||'Respons Apps Script tidak valid.');settings=r.data.settings||{...defaultSettings};replacements=r.data.replacements||{};renderAll();setConnection('ok','Terhubung — data terbaru dimuat dari Google Sheets.');lastSync=new Date()}catch(e){setConnection('bad','GAGAL MEMUAT DATA DARI SERVER: '+e.message+' Nama yang tampil mungkin data lama. Tekan Muat ulang data atau periksa URL Web App.');}}
+async function loadSharedData(){if(!apiUrl){setConnection('','Mode lokal — masukkan URL Apps Script untuk sinkronisasi bersama.');return}setConnection('','Menghubungkan ke Google Sheets…');try{const r=await jsonp({action:'load',t:Date.now()});if(!r||!r.ok)throw new Error(r&&r.error||'Respons Apps Script tidak valid.');settings=r.data.settings||{...defaultSettings};replacements=r.data.replacements||{};renderAll();setConnection('ok','Terhubung — data terbaru dimuat dari Google Sheets.');lastSync=new Date()}catch(e){setConnection('bad','Gagal memuat data: '+e.message+' Data lokal/default tetap ditampilkan.');}}
 async function saveSettings(){const month=Number($('startMonth').value),year=Number($('startYear').value),first=$('firstPerson').value;if(!Number.isInteger(year)||year<1900||year>9999){$('settingsMsg').textContent='Masukkan tahun antara 1900 sampai 9999.';return}if(!names.includes(first)){ $('settingsMsg').textContent='Pilih nama petugas yang valid.';return}const newSettings={startMonth:month,startYear:year,firstPerson:first};$('settingsMsg').textContent='⏳ Sedang menyimpan dan memverifikasi data ke Google Sheets…';try{await apiWrite('saveSettings',newSettings);$('settingsMsg').textContent='✅ Pengaturan rotasi berhasil disimpan dan diverifikasi di Google Sheets.'}catch(e){$('settingsMsg').textContent='❌ Gagal memverifikasi penyimpanan: '+e.message}}
 async function applyReplacement(){const absent=$('absentPerson').value,replacement=$('replacementPerson').value;if(absent===replacement){alert('Pilih nama pengganti yang berbeda dari petugas yang berhalangan.');return}const p=personAt(selected.year,selected.month),key=keyFor(selected.year,selected.month),next={...replacements,[key]:{absent,replacement,scheduledName:p.scheduledName}};$('replacementInfo').textContent='⏳ Sedang menyimpan dan memverifikasi penggantian ke Google Sheets…';try{await apiWrite('saveReplacements',next);$('replacementInfo').textContent=`✅ Penggantian untuk ${label(selected.year,selected.month)} berhasil disimpan dan diverifikasi di Google Sheets.`}catch(e){$('replacementInfo').textContent='❌ Gagal memverifikasi penyimpanan: '+e.message}}
 async function clearReplacement(){const next={...replacements};delete next[keyFor(selected.year,selected.month)];try{await apiWrite('saveReplacements',next);$('replacementInfo').textContent=`Penggantian bulan ${label(selected.year,selected.month)} dihapus dari Google Sheets.`}catch(e){$('replacementInfo').textContent='Gagal menghapus penggantian: '+e.message}}
