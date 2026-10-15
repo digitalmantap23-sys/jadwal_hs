@@ -130,15 +130,45 @@ function readConnection(){
   const urlField = $('apiUrl');
   if (urlField) urlField.value = apiUrl;
 }
-function jsonp(params,timeout=15000){return new Promise((resolve,reject)=>{
-if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}
-const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000),script=document.createElement('script');let done=false;
-const timer=setTimeout(()=>finish(new Error('Koneksi terlalu lama. Periksa internet dan URL Apps Script.')),timeout);
-function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[callback]}catch(e){window[callback]=undefined}script.remove();err?reject(err):resolve(data)}
-window[callback]=data=>finish(null,data);
-try{const url=new URL(apiUrl);Object.entries({...params,callback,_ts:Date.now()}).forEach(([k,v])=>url.searchParams.set(k,String(v)));script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Periksa URL Web App dan koneksi internet.'));script.src=url.toString();document.head.appendChild(script)}
-catch(e){finish(new Error('URL Apps Script tidak valid.'))}
-})}
+function jsonp(params,timeout=12000){
+  // Google ContentService dapat mengembalikan URL pengalihan sementara yang kadang gagal.
+  // Ulangi pembacaan beberapa kali dengan callback dan parameter anti-cache baru.
+  const maxAttempts=3;
+  async function attempt(n){
+    return new Promise((resolve,reject)=>{
+      if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}
+      const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000)+'_'+n;
+      const script=document.createElement('script');let done=false;
+      const timer=setTimeout(()=>finish(new Error('Waktu tunggu habis pada percobaan '+n+'.')),timeout);
+      function finish(err,data){
+        if(done)return;done=true;clearTimeout(timer);
+        try{delete window[callback]}catch(e){window[callback]=undefined}
+        script.remove();
+        err?reject(err):resolve(data);
+      }
+      window[callback]=data=>finish(null,data);
+      try{
+        const url=new URL(apiUrl);
+        Object.entries({...params,callback,_ts:Date.now()+'_'+n}).forEach(([k,v])=>url.searchParams.set(k,String(v)));
+        script.onerror=()=>finish(new Error('Pengalihan Google gagal pada percobaan '+n+'.'));
+        script.src=url.toString();
+        document.head.appendChild(script);
+      }catch(e){finish(new Error('URL Apps Script tidak valid.'))}
+    });
+  }
+  return (async()=>{
+    let lastError;
+    for(let n=1;n<=maxAttempts;n++){
+      try{
+        const data=await attempt(n);
+        if(data && typeof data==='object')return data;
+        lastError=new Error('Respons server tidak valid.');
+      }catch(e){lastError=e}
+      if(n<maxAttempts) await new Promise(resolve=>setTimeout(resolve,500*n));
+    }
+    throw new Error('Gagal membaca data setelah '+maxAttempts+' percobaan. '+(lastError?lastError.message:'Periksa deployment Apps Script dan koneksi internet.'));
+  })();
+}
 async function apiWrite(action,payload){
   if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Periksa CONFIGURED_API_URL pada kode HTML.');
   const pin=(window.prompt('Masukkan PIN pengelola untuk menyimpan perubahan:')||'').trim();
