@@ -118,7 +118,7 @@ main.wrap > .card.no-print:first-child{display:none!important}
         <input id="pinEntry" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Masukkan PIN" aria-label="PIN pengelola" required>
         <button class="pin-toggle" id="pinToggle" type="button" aria-label="Tampilkan PIN" title="Tampilkan atau sembunyikan PIN">◉</button>
       </div>
-      <p class="pin-help">🔒 PIN hanya digunakan untuk verifikasi penyimpanan.</p>
+      <p class="pin-help">🔒 PIN harus sama persis dengan ADMIN_PIN di Apps Script. Jika salah, penyimpanan akan gagal dan muncul peringatan.</p>
       <p class="pin-error" id="pinError" role="alert"></p>
       <div class="pin-actions">
         <button class="pin-cancel" id="pinCancel" type="button">Batal</button>
@@ -173,6 +173,20 @@ async function apiWrite(action,payload){
   if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Tempel URL /exec pada CONFIGURED_API_URL di kode HTML.');
   const pin = await askAdminPin();
   if(!pin) throw new Error('Penyimpanan dibatalkan karena PIN tidak diisi.');
+  // Verifikasi PIN lebih dahulu melalui GET JSONP agar PIN salah dapat
+  // dikenali secara spesifik sebelum permintaan penyimpanan dikirim.
+  let pinCheck;
+  try {
+    pinCheck = await jsonp({action:'verifyPin',pin,t:Date.now()},12000);
+  } catch(pinConnectionError) {
+    throw new Error('Tidak dapat memverifikasi PIN karena koneksi ke Apps Script gagal. Periksa URL deployment dan koneksi internet, lalu coba lagi.');
+  }
+  if(!pinCheck || !pinCheck.ok) {
+    const pinMessage = pinCheck && pinCheck.error ? pinCheck.error : 'PIN pengelola tidak dapat diverifikasi.';
+    alert('❌ '+pinMessage);
+    throw new Error(pinMessage);
+  }
+
   const body=new URLSearchParams({action,pin,payload:JSON.stringify(payload)});
 
   // POST no-cors tidak menyediakan isi respons kepada browser. Karena itu,
@@ -210,9 +224,24 @@ async function apiWrite(action,payload){
   }
 
   if(!verified){
-    if(action==='saveReplacements') throw new Error('Data penggantian sudah diminta untuk disimpan, tetapi hasil baca ulang belum cocok setelah 4 percobaan. Jika baris sudah muncul di tab Penggantian, periksa apakah seluruh daftar penggantian pada sheet sesuai dengan data HTML.');
-    if(action==='saveSettings') throw new Error('Pengaturan belum dapat diverifikasi setelah 4 percobaan. Periksa data pada tab Pengaturan di Google Sheets.');
-    throw new Error('Penyimpanan belum dapat diverifikasi. '+lastReadError);
+    // POST menggunakan mode no-cors sehingga browser tidak dapat membaca
+    // jawaban langsung dari Apps Script. Karena itu, PIN yang ditolak tidak
+    // bisa dibedakan secara pasti dari kegagalan koneksi hanya dari POST.
+    // Pesan berikut memberi peringatan yang jelas saat verifikasi gagal.
+    const pinWarning='PIN mungkin salah/tidak cocok dengan ADMIN_PIN di Apps Script, atau server menolak penyimpanan. Periksa PIN, lalu coba lagi.';
+    if(action==='saveReplacements') {
+      const message='❌ PENYIMPANAN GAGAL. '+pinWarning+' Data penggantian belum berhasil diverifikasi setelah 4 percobaan. Jika baris sudah muncul di tab Penggantian, periksa apakah seluruh daftar penggantian pada sheet sesuai dengan data HTML.';
+      alert(message);
+      throw new Error(message);
+    }
+    if(action==='saveSettings') {
+      const message='❌ PENYIMPANAN GAGAL. '+pinWarning+' Pengaturan belum dapat diverifikasi setelah 4 percobaan. Periksa data pada tab Pengaturan di Google Sheets.';
+      alert(message);
+      throw new Error(message);
+    }
+    const message='❌ PENYIMPANAN GAGAL. '+pinWarning+' '+lastReadError;
+    alert(message);
+    throw new Error(message);
   }
 
   const data=result.data||{};
