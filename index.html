@@ -137,7 +137,7 @@ const shortMonths=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','
 const defaultSettings={startMonth:9,startYear:2026,firstPerson:'UST LATIF'};
 let settings={...defaultSettings},replacements={},selected={year:new Date().getFullYear(),month:new Date().getMonth()},listMode='upcoming',calendarYear=new Date().getFullYear();
 // KONFIGURASI: setelah deploy Apps Script, tempel URL Web App yang berakhiran /exec di bawah ini.
-const CONFIGURED_API_URL = 'https://script.google.com/macros/s/AKfycbxSMBjvu3sQnnc78aoJvcha4zlBpq4vG6TfFP6mgdH-oy4-QkxHeydwrXH9di0flIa3ew/exec';
+const CONFIGURED_API_URL = 'https://script.google.com/macros/s/AKfycbw-Nal38fmNsq3LRHvDy6JjFxXsk6mV_JVIGBlrtaOeUrHWft3nLjH9SzPX0fur64gq7w/exec';
 let apiUrl='',lastSync=null;
 const $=id=>document.getElementById(id),monthIndex=(y,m)=>y*12+m,monthDiff=(y,m,by,bm)=>monthIndex(y,m)-monthIndex(by,bm),mod=(n,m)=>((n%m)+m)%m,keyFor=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
 function setConnection(state,message){$('connectionDot').className='dot'+(state==='ok'?' ok':state==='bad'?' bad':'');$('connectionText').textContent=message}
