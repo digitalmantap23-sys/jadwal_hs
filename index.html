@@ -2,8 +2,12 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#173b68">
+<meta name="color-scheme" content="light">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Jadwal Rutin Bulanan</title>
 <style>
 :root{--navy:#173b68;--blue:#2563eb;--light:#eef5ff;--green:#138a5b;--orange:#f59e0b;--ink:#172033;--muted:#64748b;--line:#dce5f0;--shadow:0 12px 32px #173b6810}
@@ -20,7 +24,31 @@ h2{font-size:1.08rem;margin:0 0 14px;color:var(--navy)}.muted{color:var(--muted)
 .status{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.77rem;font-weight:750;background:#edf2f7;color:#475569;white-space:nowrap}.status.now{background:#dbeafe;color:#1d4ed8}.status.next{background:#dcfce7;color:#166534}.status.past{background:#f1f5f9;color:#64748b}
 .sectionhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.calendar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.monthbox{border:1px solid var(--line);border-radius:14px;padding:13px;background:white;cursor:pointer;text-align:left;color:var(--ink);box-shadow:none;min-width:0}.monthbox strong{display:block;color:var(--navy);margin:5px 0;overflow-wrap:anywhere}.monthbox small{color:var(--muted);display:block}.monthbox.current{border:2px solid var(--blue);background:#eff6ff}.monthbox.next{border:2px solid #16a34a;background:#f0fdf4}
 footer{text-align:center;color:var(--muted);font-size:.82rem;padding:10px 0 24px}.accordion{padding:0;overflow:hidden}.accordion>summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:18px 20px;cursor:pointer;color:var(--navy);font-size:1rem;font-weight:850;user-select:none}.accordion>summary::-webkit-details-marker{display:none}.accordion>summary:hover{background:#f7faff}.accordion[open]>summary{border-bottom:1px solid var(--line);background:#f7faff}.chevron{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:#e8eef7;color:var(--navy);font-size:1.2rem;transition:transform .15s}.accordion[open] .chevron{transform:rotate(180deg)}.accordion-content{padding:18px 20px}.notice{padding:11px 13px;background:#f7faff;border:1px solid #e3ecf8;border-radius:12px}.connection{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.83rem;margin-top:12px}.dot{width:9px;height:9px;border-radius:50%;background:#f59e0b;display:inline-block}.dot.ok{background:#16a34a}.dot.bad{background:#dc2626}.adminbox{border:1px dashed #b9c9de;padding:14px;border-radius:14px;margin-top:14px;background:#fbfdff}
-@media(max-width:720px){.hero{grid-template-columns:1fr}.calendar{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:16px;border-radius:17px}.controls button{flex:1 1 135px}.accordion>summary{padding:16px}.accordion-content{padding:14px}.stat{padding:12px}}@media(max-width:390px){.wrap{padding:0 11px}.person{font-size:1.8rem}.controls button{flex:1 1 100%}}
+@media(max-width:720px){
+body{font-size:16px;background:#f4f7fc}header{padding:24px 14px 58px}
+.wrap{padding-left:12px;padding-right:12px}.hero{grid-template-columns:minmax(0,1fr);gap:12px}
+main{margin-top:-32px}.card{padding:15px;border-radius:16px;margin-bottom:12px}
+.person{font-size:clamp(1.7rem,7vw,2.25rem);overflow-wrap:anywhere}.monthTitle{font-size:1.35rem}
+.statgrid{gap:8px}.stat{padding:11px}.controls{width:100%;gap:8px}
+.controls button{flex:1 1 calc(50% - 8px);min-width:0;white-space:normal;line-height:1.25;padding:11px 10px}
+.formgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:stretch}
+.formgrid>label,.formgrid label{width:100%;min-width:0}.formgrid button{width:100%;min-height:46px}
+input,select{font-size:16px;min-height:48px}.accordion>summary{padding:15px;min-height:54px}
+.accordion-content{padding:13px}.sectionhead{align-items:stretch}.sectionhead>.controls{width:100%}
+.calendar{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.monthbox{padding:11px 9px;min-height:92px}
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}table{min-width:560px}
+th,td{padding:10px;font-size:.88rem}.connection{align-items:flex-start}
+footer{padding:10px 12px 24px}
+}
+@media(max-width:390px){
+.wrap{padding-left:10px;padding-right:10px}header{padding-left:12px;padding-right:12px}
+h1{font-size:1.45rem}.person{font-size:1.65rem}.controls button{flex-basis:100%}
+.calendar{grid-template-columns:repeat(2,minmax(0,1fr))}.statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(hover:none){button:hover{transform:none}}
+button:disabled{opacity:.6;cursor:wait;transform:none}
+button,summary,.monthbox{-webkit-tap-highlight-color:transparent}
+
 @media print{body{background:white}header{padding:16px;background:white!important;color:#111;border-bottom:2px solid #333}header p{color:#333}main{margin:0}.no-print,footer{display:none!important}.card{box-shadow:none;break-inside:avoid;border:1px solid #bbb}.hero{grid-template-columns:1fr 1fr}table{min-width:0}th,td{padding:7px;font-size:10pt}.wrap{max-width:none}.calendar{grid-template-columns:repeat(4,1fr)}details.accordion{display:block!important}details.accordion:not([open])>.accordion-content{display:block!important}details.accordion>summary{display:none!important}.accordion-content{padding:8px}.tablewrap{overflow:visible}}
 /* Panel sinkronisasi disembunyikan; struktur HTML dan fungsi lainnya tetap dipertahankan. */
 main.wrap > .card.no-print:first-child{display:none!important}
@@ -102,7 +130,15 @@ function readConnection(){
   const urlField = $('apiUrl');
   if (urlField) urlField.value = apiUrl;
 }
-function jsonp(params,timeout=12000){return new Promise((resolve,reject)=>{if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000);const script=document.createElement('script');let done=false;const timer=setTimeout(()=>finish(new Error('Waktu koneksi habis. Periksa URL dan deployment Apps Script.')),timeout);function finish(err,data){if(done)return;done=true;clearTimeout(timer);delete window[callback];script.remove();err?reject(err):resolve(data)}window[callback]=data=>finish(null,data);const url=new URL(apiUrl);Object.entries({...params,callback}).forEach(([k,v])=>url.searchParams.set(k,String(v)));script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Periksa URL Web App.'));script.src=url.toString();document.head.appendChild(script)})}
+function jsonp(params,timeout=15000){return new Promise((resolve,reject)=>{
+if(!apiUrl){reject(new Error('URL Apps Script belum diatur.'));return}
+const callback='jadwalCb_'+Date.now()+'_'+Math.floor(Math.random()*100000),script=document.createElement('script');let done=false;
+const timer=setTimeout(()=>finish(new Error('Koneksi terlalu lama. Periksa internet dan URL Apps Script.')),timeout);
+function finish(err,data){if(done)return;done=true;clearTimeout(timer);try{delete window[callback]}catch(e){window[callback]=undefined}script.remove();err?reject(err):resolve(data)}
+window[callback]=data=>finish(null,data);
+try{const url=new URL(apiUrl);Object.entries({...params,callback,_ts:Date.now()}).forEach(([k,v])=>url.searchParams.set(k,String(v)));script.onerror=()=>finish(new Error('Tidak dapat menghubungi Apps Script. Periksa URL Web App dan koneksi internet.'));script.src=url.toString();document.head.appendChild(script)}
+catch(e){finish(new Error('URL Apps Script tidak valid.'))}
+})}
 async function apiWrite(action,payload){
   if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Tempel URL /exec pada CONFIGURED_API_URL di kode HTML.');
   // PIN diminta saat perubahan data, sehingga panel koneksi dapat tetap tersembunyi.
@@ -134,7 +170,7 @@ function csvEscape(s){return'"'+String(s).replace(/"/g,'""')+'"'}function downlo
 function shareText(){return`JADWAL RUTIN BULANAN\nMulai dari: ${label(selected.year,selected.month)}\n\n`+visibleRows().map((r,i)=>`${i+1}. ${label(r.year,r.month)} — ${r.replacement?`${r.name} (pengganti ${r.scheduledName}; berhalangan: ${r.replacement.absent})`:r.name}${r.status==='Bulan ini'?' (BULAN INI)':r.status==='Berikutnya'?' (BERIKUTNYA)':''}`).join('\n')}
 async function copySchedule(){const text=shareText();try{await navigator.clipboard.writeText(text);$('copyBtn').textContent='Berhasil disalin!';setTimeout(()=>$('copyBtn').textContent='Salin untuk WhatsApp',1800)}catch(e){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(err){}ta.remove();if(ok)alert('Jadwal berhasil disalin.');else prompt('Salin teks jadwal berikut:',text)}}
 $('connectBtn').addEventListener('click',()=>{const value=$('apiUrl').value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(value)){alert('Masukkan URL Web App Apps Script yang berakhiran /exec.');return}apiUrl=value;try{localStorage.setItem('jadwalRutinApiUrl',apiUrl)}catch(e){}loadSharedData()});
-$('refreshBtn').addEventListener('click',loadSharedData);
+$('refreshBtn').addEventListener('click',async()=>{const b=$('refreshBtn');if(b.disabled)return;b.disabled=true;const old=b.textContent;b.textContent='Memuat…';try{await loadSharedData()}finally{b.disabled=false;b.textContent=old}});
 $('prevBtn').addEventListener('click',()=>{const d=dateFromIndex(monthIndex(selected.year,selected.month)-1);setSelected(d.year,d.month)});
 $('nextBtn').addEventListener('click',()=>{const d=dateFromIndex(monthIndex(selected.year,selected.month)+1);setSelected(d.year,d.month)});
 $('todayBtn').addEventListener('click',()=>{const n=nowMonth();listMode='upcoming';$('searchInput').value='';$('yearFilter').value='all';setSelected(n.year,n.month)});
@@ -146,6 +182,8 @@ $('saveSettings').addEventListener('click',saveSettings);$('applyReplacement').a
 $('resetSettings').addEventListener('click',async()=>{if(!confirm('Kembalikan pengaturan rotasi bersama ke pengaturan awal Oktober 2026, UST LATIF?'))return;settings={...defaultSettings};$('startMonth').value=settings.startMonth;$('startYear').value=settings.startYear;$('firstPerson').value=settings.firstPerson;try{await apiWrite('saveSettings',settings);$('settingsMsg').textContent='Pengaturan awal berhasil dipulihkan di Google Sheets.'}catch(e){$('settingsMsg').textContent='Gagal menyimpan: '+e.message}});
 $('printBtn').addEventListener('click',()=>window.print());$('csvBtn').addEventListener('click',downloadCSV);$('copyBtn').addEventListener('click',copySchedule);
 fillMonths($('monthPicker'));fillMonths($('startMonth'));fillPeople();readConnection();updateYearOptions();renderAll();loadSharedData();
+window.addEventListener('pageshow',event=>{if(event.persisted)loadSharedData()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadSharedData()});
 document.querySelectorAll('details.accordion').forEach(item=>item.addEventListener('toggle',()=>{if(item.open)document.querySelectorAll('details.accordion').forEach(other=>{if(other!==item)other.open=false})}));
 })();
 </script>
