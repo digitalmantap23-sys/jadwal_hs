@@ -140,15 +140,50 @@ try{const url=new URL(apiUrl);Object.entries({...params,callback,_ts:Date.now()}
 catch(e){finish(new Error('URL Apps Script tidak valid.'))}
 })}
 async function apiWrite(action,payload){
-  if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Tempel URL /exec pada CONFIGURED_API_URL di kode HTML.');
-  // PIN diminta saat perubahan data, sehingga panel koneksi dapat tetap tersembunyi.
-  const pin = (window.prompt('Masukkan PIN pengelola untuk menyimpan perubahan:') || '').trim();
+  if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Periksa CONFIGURED_API_URL pada kode HTML.');
+  const pin=(window.prompt('Masukkan PIN pengelola untuk menyimpan perubahan:')||'').trim();
   if(!pin) throw new Error('Penyimpanan dibatalkan karena PIN tidak diisi.');
   const body=new URLSearchParams({action,pin,payload:JSON.stringify(payload)});
-  // Kirim penyimpanan. Respons POST no-cors tidak dapat dibaca langsung,
-  // sehingga hasil tetap diverifikasi dengan membaca ulang data dari endpoint GET.
+  // Kirim ke Apps Script. Karena mode no-cors, respons POST tidak dapat dibaca langsung.
   await fetch(apiUrl,{method:'POST',mode:'no-cors',body});
-  const result=await jsonp({action:'load',t:Date.now()},12000);if(!result||!result.ok)throw new Error(result&&result.error?result.error:'Tidak dapat memverifikasi penyimpanan.');const data=result.data||{};if(action==='saveSettings'){const s=data.settings||{};if(Number(s.startMonth)!==Number(payload.startMonth)||Number(s.startYear)!==Number(payload.startYear)||String(s.firstPerson)!==String(payload.firstPerson))throw new Error('Data belum berubah. Periksa PIN pengelola, deployment Apps Script, dan izin akses.')}else if(action==='saveReplacements'){if(JSON.stringify(sortObject(data.replacements||{}))!==JSON.stringify(sortObject(payload||{})))throw new Error('Data penggantian belum berubah. Periksa PIN pengelola dan deployment Apps Script.')}settings=data.settings||{...defaultSettings};replacements=data.replacements||{};renderAll();setConnection('ok','Terhubung — data dimuat dari Google Sheets.');return result}
+  // Baca ulang sumber data bersama dengan parameter anti-cache.
+  const result=await jsonp({action:'load',t:Date.now(),refresh:Date.now()},15000);
+  if(!result||!result.ok) throw new Error(result&&result.error?result.error:'Tidak dapat membaca ulang data dari Google Sheets.');
+  const data=result.data||{};
+  const loadedSettings=data.settings||{...defaultSettings};
+  const loadedReplacements=data.replacements||{};
+
+  // Selalu perbarui tampilan dari data server, termasuk ketika verifikasi menemukan selisih.
+  settings=loadedSettings;
+  replacements=loadedReplacements;
+  renderAll();
+  setConnection('ok','Terhubung — data terbaru dibaca dari Google Sheets.');
+
+  if(action==='saveSettings'){
+    const s=loadedSettings;
+    if(Number(s.startMonth)!==Number(payload.startMonth)||
+       Number(s.startYear)!==Number(payload.startYear)||
+       String(s.firstPerson)!==String(payload.firstPerson)){
+      throw new Error('Data di Google Sheets belum sama dengan pengaturan yang diminta. Tampilan telah diperbarui mengikuti data server.');
+    }
+  }else if(action==='saveReplacements'){
+    const expected=payload||{};
+    const actual=loadedReplacements||{};
+    const expectedKeys=Object.keys(expected).sort();
+    const actualKeys=Object.keys(actual).sort();
+    const sameKeys=expectedKeys.length===actualKeys.length&&expectedKeys.every((k,i)=>k===actualKeys[i]);
+    const sameValues=sameKeys&&expectedKeys.every(k=>
+      String((actual[k]||{}).absent||'')===String((expected[k]||{}).absent||'')&&
+      String((actual[k]||{}).replacement||'')===String((expected[k]||{}).replacement||'')&&
+      String((actual[k]||{}).scheduledName||'')===String((expected[k]||{}).scheduledName||'')
+    );
+    if(!sameValues){
+      throw new Error('Data di Google Sheets belum sama dengan penggantian yang diminta. Tampilan telah diperbarui mengikuti data server.');
+    }
+  }
+  lastSync=new Date();
+  return result;
+}
 function sortObject(obj){return Object.keys(obj).sort().reduce((out,key)=>{out[key]=obj[key];return out;},{});}
 function personAt(y,m){const ix=names.indexOf(settings.firstPerson);const index=mod(ix+monthDiff(y,m,settings.startYear,settings.startMonth),names.length);const scheduledName=names[index],replacement=replacements[keyFor(y,m)]||null;return{name:replacement?replacement.replacement:scheduledName,index,scheduledName,replacement,key:keyFor(y,m)}}
 function dateFromIndex(i){return{year:Math.floor(i/12),month:mod(i,12)}}function label(y,m){return`${months[m]} ${y}`}function sameMonth(a,b){return a.year===b.year&&a.month===b.month}function nowMonth(){const d=new Date();return{year:d.getFullYear(),month:d.getMonth()}}
