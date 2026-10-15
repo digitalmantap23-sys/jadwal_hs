@@ -71,7 +71,7 @@ main.wrap > .card.no-print:first-child{display:none!important}
   </div>
   <section class="hero">
     <div class="card">
-      <div class="kicker">Petugas bulan terpilih</div><div id="selectedMonth" class="monthTitle">Oktober 2026</div><div id="person" class="person">UST LATIF</div>
+      <div class="kicker">Petugas bulan terpilih</div><div id="selectedMonth" class="monthTitle">Oktober 2026</div><div id="person" class="person">LATIF</div>
       <span id="position" class="pill">Urutan ke-2 dari 13 nama</span><span id="todayTag" class="pill">Bulan ini</span>
       <div class="controls no-print" style="margin-top:20px"><button class="secondary" id="prevBtn" type="button">← Bulan sebelumnya</button><button id="nextBtn" type="button">Bulan berikutnya →</button><button class="green" id="todayBtn" type="button">Kembali ke bulan ini</button></div>
     </div>
@@ -131,10 +131,10 @@ main.wrap > .card.no-print:first-child{display:none!important}
 <script>
 (() => {
 'use strict';
-const names=['UST FARHAN','UST LATIF','UST WAHYU','MUSTAKIM',"UST ABDUR ROFI'",'UST EKO','UST RAGIL','UST SUYUTI','SYAHRUL','UST SAMSUL','UST SLAMET','FATAHILLAH','KHOLIL'];
+const names=['FARHAN','LATIF','WAHYU','MUSTAKIM',"ABDUR ROFI'",'EKO','RAGIL','SUYUTI','SYAHRUL','SAMSUL','SLAMET','FATAHILLAH','KHOLIL'];
 const months=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const shortMonths=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-const defaultSettings={startMonth:9,startYear:2026,firstPerson:'UST LATIF'};
+const defaultSettings={startMonth:9,startYear:2026,firstPerson:'LATIF'};
 let settings={...defaultSettings},replacements={},selected={year:new Date().getFullYear(),month:new Date().getMonth()},listMode='upcoming',calendarYear=new Date().getFullYear();
 // KONFIGURASI: setelah deploy Apps Script, tempel URL Web App yang berakhiran /exec di bawah ini.
 const CONFIGURED_API_URL = 'https://script.google.com/macros/s/AKfycbxSMBjvu3sQnnc78aoJvcha4zlBpq4vG6TfFP6mgdH-oy4-QkxHeydwrXH9di0flIa3ew/exec';
@@ -267,7 +267,7 @@ $('yearPicker').addEventListener('keydown',e=>{if(e.key==='Enter')$('goBtn').cli
 $('rangePicker').addEventListener('change',()=>{listMode='upcoming';renderTable()});$('historyBtn').addEventListener('click',()=>{listMode='history';renderTable()});$('upcomingBtn').addEventListener('click',()=>{listMode='upcoming';renderTable()});$('searchInput').addEventListener('input',renderTable);$('yearFilter').addEventListener('change',renderTable);
 $('calPrev').addEventListener('click',()=>{if(calendarYear>1900){calendarYear--;renderCalendar()}});$('calNext').addEventListener('click',()=>{if(calendarYear<9999){calendarYear++;renderCalendar()}});
 $('saveSettings').addEventListener('click',saveSettings);$('applyReplacement').addEventListener('click',applyReplacement);$('clearReplacement').addEventListener('click',clearReplacement);
-$('resetSettings').addEventListener('click',async()=>{if(!confirm('Kembalikan pengaturan rotasi bersama ke pengaturan awal Oktober 2026, UST LATIF?'))return;settings={...defaultSettings};$('startMonth').value=settings.startMonth;$('startYear').value=settings.startYear;$('firstPerson').value=settings.firstPerson;try{await apiWrite('saveSettings',settings);$('settingsMsg').textContent='Pengaturan awal berhasil dipulihkan di Google Sheets.'}catch(e){$('settingsMsg').textContent='Gagal menyimpan: '+e.message}});
+$('resetSettings').addEventListener('click',async()=>{if(!confirm('Kembalikan pengaturan rotasi bersama ke pengaturan awal Oktober 2026, LATIF?'))return;settings={...defaultSettings};$('startMonth').value=settings.startMonth;$('startYear').value=settings.startYear;$('firstPerson').value=settings.firstPerson;try{await apiWrite('saveSettings',settings);$('settingsMsg').textContent='Pengaturan awal berhasil dipulihkan di Google Sheets.'}catch(e){$('settingsMsg').textContent='Gagal menyimpan: '+e.message}});
 $('printBtn').addEventListener('click',()=>window.print());$('csvBtn').addEventListener('click',downloadCSV);$('copyBtn').addEventListener('click',copySchedule);
 fillMonths($('monthPicker'));fillMonths($('startMonth'));fillPeople();readConnection();updateYearOptions();renderAll();loadSharedData();
 document.querySelectorAll('details.accordion').forEach(item=>item.addEventListener('toggle',()=>{if(item.open)document.querySelectorAll('details.accordion').forEach(other=>{if(other!==item)other.open=false})}));
