@@ -137,7 +137,7 @@ const shortMonths=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','
 const defaultSettings={startMonth:9,startYear:2026,firstPerson:'UST LATIF'};
 let settings={...defaultSettings},replacements={},selected={year:new Date().getFullYear(),month:new Date().getMonth()},listMode='upcoming',calendarYear=new Date().getFullYear();
 // KONFIGURASI: setelah deploy Apps Script, tempel URL Web App yang berakhiran /exec di bawah ini.
-const CONFIGURED_API_URL = 'https://script.google.com/macros/s/AKfycbw-Nal38fmNsq3LRHvDy6JjFxXsk6mV_JVIGBlrtaOeUrHWft3nLjH9SzPX0fur64gq7w/exec';
+const CONFIGURED_API_URL = 'https://script.google.com/macros/s/AKfycbxSMBjvu3sQnnc78aoJvcha4zlBpq4vG6TfFP6mgdH-oy4-QkxHeydwrXH9di0flIa3ew/exec';
 let apiUrl='',lastSync=null;
 const $=id=>document.getElementById(id),monthIndex=(y,m)=>y*12+m,monthDiff=(y,m,by,bm)=>monthIndex(y,m)-monthIndex(by,bm),mod=(n,m)=>((n%m)+m)%m,keyFor=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
 function setConnection(state,message){$('connectionDot').className='dot'+(state==='ok'?' ok':state==='bad'?' bad':'');$('connectionText').textContent=message}
@@ -171,15 +171,73 @@ function askAdminPin(){
 }
 async function apiWrite(action,payload){
   if(!apiUrl) throw new Error('URL Apps Script belum dikonfigurasi. Tempel URL /exec pada CONFIGURED_API_URL di kode HTML.');
-  // PIN diminta melalui dialog yang terpusat, nyaman di desktop dan HP.
   const pin = await askAdminPin();
   if(!pin) throw new Error('Penyimpanan dibatalkan karena PIN tidak diisi.');
   const body=new URLSearchParams({action,pin,payload:JSON.stringify(payload)});
-  // Kirim penyimpanan. Respons POST no-cors tidak dapat dibaca langsung,
-  // sehingga hasil tetap diverifikasi dengan membaca ulang data dari endpoint GET.
-  await fetch(apiUrl,{method:'POST',mode:'no-cors',body});
-  const result=await jsonp({action:'load',t:Date.now()},12000);if(!result||!result.ok)throw new Error(result&&result.error?result.error:'Tidak dapat memverifikasi penyimpanan.');const data=result.data||{};if(action==='saveSettings'){const s=data.settings||{};if(Number(s.startMonth)!==Number(payload.startMonth)||Number(s.startYear)!==Number(payload.startYear)||String(s.firstPerson)!==String(payload.firstPerson))throw new Error('Data belum berubah. Periksa PIN pengelola, deployment Apps Script, dan izin akses.')}else if(action==='saveReplacements'){if(JSON.stringify(sortObject(data.replacements||{}))!==JSON.stringify(sortObject(payload||{})))throw new Error('Data penggantian belum berubah. Periksa PIN pengelola dan deployment Apps Script.')}settings=data.settings||{...defaultSettings};replacements=data.replacements||{};renderAll();setConnection('ok','Terhubung — data dimuat dari Google Sheets.');return result}
-function sortObject(obj){return Object.keys(obj).sort().reduce((out,key)=>{out[key]=obj[key];return out;},{});}
+
+  // POST no-cors tidak menyediakan isi respons kepada browser. Karena itu,
+  // keberhasilan diperiksa melalui GET ulang, dengan beberapa percobaan untuk
+  // menghindari pembacaan yang terlalu cepat setelah Google Sheets diperbarui.
+  try {
+    await fetch(apiUrl,{method:'POST',mode:'no-cors',body});
+  } catch(fetchError) {
+    throw new Error('Permintaan penyimpanan tidak terkirim. Periksa koneksi internet dan URL Web App.');
+  }
+
+  let result=null, verified=false, lastReadError='';
+  for(let attempt=0;attempt<4;attempt++){
+    if(attempt>0) await new Promise(resolve=>setTimeout(resolve,700*attempt));
+    try {
+      result=await jsonp({action:'load',t:Date.now(),verifyAttempt:attempt},15000);
+      if(!result||!result.ok) throw new Error(result&&result.error?result.error:'Respons Apps Script tidak valid.');
+      const data=result.data||{};
+      if(action==='saveSettings'){
+        const s=data.settings||{};
+        verified=Number(s.startMonth)===Number(payload.startMonth)
+          && Number(s.startYear)===Number(payload.startYear)
+          && String(s.firstPerson||'').trim()===String(payload.firstPerson||'').trim();
+      } else if(action==='saveReplacements') {
+        verified=JSON.stringify(normalizeReplacements(data.replacements||{}))
+          ===JSON.stringify(normalizeReplacements(payload||{}));
+      } else {
+        verified=true;
+      }
+      if(verified) break;
+      lastReadError='Data yang dibaca ulang belum sama dengan data yang dikirim.';
+    } catch(readError) {
+      lastReadError=readError&&readError.message?readError.message:String(readError);
+    }
+  }
+
+  if(!verified){
+    if(action==='saveReplacements') throw new Error('Data penggantian sudah diminta untuk disimpan, tetapi hasil baca ulang belum cocok setelah 4 percobaan. Jika baris sudah muncul di tab Penggantian, periksa apakah seluruh daftar penggantian pada sheet sesuai dengan data HTML.');
+    if(action==='saveSettings') throw new Error('Pengaturan belum dapat diverifikasi setelah 4 percobaan. Periksa data pada tab Pengaturan di Google Sheets.');
+    throw new Error('Penyimpanan belum dapat diverifikasi. '+lastReadError);
+  }
+
+  const data=result.data||{};
+  settings=data.settings||{...defaultSettings};
+  replacements=data.replacements||{};
+  renderAll();
+  setConnection('ok','Terhubung — data dimuat dari Google Sheets.');
+  return result;
+}
+
+// Membandingkan data berdasarkan nilai, bukan urutan properti objek JavaScript.
+// Ini mencegah verifikasi gagal hanya karena urutan properti berbeda setelah
+// data disimpan dan dibaca kembali dari Google Sheets.
+function normalizeReplacements(obj){
+  const normalized={};
+  Object.keys(obj||{}).sort().forEach(key=>{
+    const item=obj[key]||{};
+    normalized[String(key)]={
+      absent:String(item.absent||'').trim(),
+      replacement:String(item.replacement||'').trim(),
+      scheduledName:String(item.scheduledName||'').trim()
+    };
+  });
+  return normalized;
+}
 function personAt(y,m){const ix=names.indexOf(settings.firstPerson);const index=mod(ix+monthDiff(y,m,settings.startYear,settings.startMonth),names.length);const scheduledName=names[index],replacement=replacements[keyFor(y,m)]||null;return{name:replacement?replacement.replacement:scheduledName,index,scheduledName,replacement,key:keyFor(y,m)}}
 function dateFromIndex(i){return{year:Math.floor(i/12),month:mod(i,12)}}function label(y,m){return`${months[m]} ${y}`}function sameMonth(a,b){return a.year===b.year&&a.month===b.month}function nowMonth(){const d=new Date();return{year:d.getFullYear(),month:d.getMonth()}}
 function fillMonths(el){months.forEach((m,i)=>{const o=document.createElement('option');o.value=i;o.textContent=m;el.appendChild(o)})}
