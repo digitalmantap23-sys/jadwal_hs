@@ -142,14 +142,14 @@ let apiUrl='',lastSync=null;
 const $=id=>document.getElementById(id),monthIndex=(y,m)=>y*12+m,monthDiff=(y,m,by,bm)=>monthIndex(y,m)-monthIndex(by,bm),mod=(n,m)=>((n%m)+m)%m,keyFor=(y,m)=>`${y}-${String(m+1).padStart(2,'0')}`;
 function setConnection(state,message){$('connectionDot').className='dot'+(state==='ok'?' ok':state==='bad'?' bad':'');$('connectionText').textContent=message}
 function readConnection(){
-  // URL diambil dari konfigurasi kode agar panel sinkronisasi tetap tersembunyi.
+  // Prioritaskan URL deployment yang disimpan dari panel koneksi.
+  // URL dalam kode menjadi cadangan jika belum ada URL tersimpan.
   const validUrl = /^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/;
-  try {
-    const saved = localStorage.getItem('jadwalRutinApiUrl') || '';
-    apiUrl = validUrl.test(CONFIGURED_API_URL) ? CONFIGURED_API_URL : saved;
-  } catch(e) {
-    apiUrl = validUrl.test(CONFIGURED_API_URL) ? CONFIGURED_API_URL : '';
-  }
+  let saved = '';
+  try { saved = localStorage.getItem('jadwalRutinApiUrl') || ''; } catch(e) {}
+  if (validUrl.test(saved)) apiUrl = saved;
+  else if (validUrl.test(CONFIGURED_API_URL)) apiUrl = CONFIGURED_API_URL;
+  else apiUrl = '';
   const urlField = $('apiUrl');
   if (urlField) urlField.value = apiUrl;
 }
@@ -257,12 +257,13 @@ async function apiWrite(action,payload){
 // data disimpan dan dibaca kembali dari Google Sheets.
 function normalizeReplacements(obj){
   const normalized={};
+  const normalizeName=value=>String(value||'').trim().replace(/^UST\s+/i,'').trim();
   Object.keys(obj||{}).sort().forEach(key=>{
     const item=obj[key]||{};
     normalized[String(key)]={
-      absent:String(item.absent||'').trim(),
-      replacement:String(item.replacement||'').trim(),
-      scheduledName:String(item.scheduledName||'').trim()
+      absent:normalizeName(item.absent),
+      replacement:normalizeName(item.replacement),
+      scheduledName:normalizeName(item.scheduledName)
     };
   });
   return normalized;
